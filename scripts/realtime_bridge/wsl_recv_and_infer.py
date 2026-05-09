@@ -20,12 +20,11 @@ from pathlib import Path
 
 import numpy as np
 
-# Allow import of audio_yolo_infer when run as script
 _SCRIPT_DIR = Path(__file__).resolve().parent
-if str(_SCRIPT_DIR) not in sys.path:
-    sys.path.insert(0, str(_SCRIPT_DIR))
-
-from audio_yolo_infer import DEFAULT_LABELS, AudioYoloRunner  # noqa: E402
+_SCRIPTS_DIR = Path(__file__).resolve().parent.parent
+for _p in (_SCRIPT_DIR, _SCRIPTS_DIR):
+    if str(_p) not in sys.path:
+        sys.path.insert(0, str(_p))
 
 
 def recv_exact(conn: socket.socket, n: int) -> bytes:
@@ -55,10 +54,25 @@ def main() -> None:
     parser.add_argument(
         "--labels",
         type=str,
-        default=",".join(DEFAULT_LABELS),
+        default="woda,pozar,kolumna,krab,bomba,karabin",
         help="Comma-separated class names (order = model class id)",
     )
+    parser.add_argument("--mel-n-fft", type=int, default=None, dest="mel_n_fft")
+    parser.add_argument("--mel-hop-length", type=int, default=None, dest="mel_hop_length")
+    parser.add_argument("--mel-n-mels", type=int, default=None, dest="mel_n_mels")
+    parser.add_argument("--mel-fmin", type=float, default=None, dest="mel_fmin")
+    parser.add_argument("--mel-fmax", type=float, default=None, dest="mel_fmax")
+    parser.add_argument("--mel-top-db", type=float, default=None, dest="mel_top_db")
+    parser.add_argument("--mel-preemph", type=float, default=None, dest="mel_preemph")
+    parser.add_argument("--mel-no-preemph", action="store_true", dest="mel_no_preemph")
     args = parser.parse_args()
+
+    import mel_features as mf
+
+    mf.apply_mel_argparse_args(args)
+    print("Mel config:", mf.mel_config_summary(), flush=True)
+
+    from audio_yolo_infer import AudioYoloRunner  # noqa: E402
 
     model_path = Path(args.model)
     if not model_path.is_file():

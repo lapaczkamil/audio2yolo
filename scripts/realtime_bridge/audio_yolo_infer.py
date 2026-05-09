@@ -3,16 +3,17 @@ Shared mel-spectrogram + YOLO inference (keep aligned with ros2 audio_detector n
 """
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 from typing import List, Tuple
 
-import librosa
-import librosa.display
-import matplotlib
-
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np
+
+_SCRIPTS = Path(__file__).resolve().parent.parent
+if str(_SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS))
+
+from mel_features import audio_to_spectrogram_rgb  # noqa: E402
 
 try:
     from ultralytics import YOLO
@@ -35,33 +36,7 @@ class AudioYoloRunner:
         self.model = YOLO(str(path))
 
     def _audio_to_spectrogram_image(self, audio_frame: np.ndarray, sample_rate: int) -> np.ndarray:
-        mel = librosa.feature.melspectrogram(
-            y=audio_frame,
-            sr=sample_rate,
-            n_fft=2048,
-            hop_length=512,
-            n_mels=128,
-        )
-        mel_db = librosa.power_to_db(mel, ref=np.max)
-        fig = plt.figure(figsize=(6.4, 6.4), dpi=100)
-        ax = plt.Axes(fig, [0.0, 0.0, 1.0, 1.0])
-        ax.set_axis_off()
-        fig.add_axes(ax)
-        librosa.display.specshow(
-            mel_db,
-            sr=sample_rate,
-            hop_length=512,
-            x_axis="time",
-            y_axis="mel",
-            cmap="magma",
-            ax=ax,
-        )
-        fig.canvas.draw()
-        width, height = fig.canvas.get_width_height()
-        image = np.frombuffer(fig.canvas.buffer_rgba(), dtype=np.uint8).reshape(height, width, 4)
-        rgb = image[:, :, :3].copy()
-        plt.close(fig)
-        return rgb
+        return audio_to_spectrogram_rgb(audio_frame, sample_rate)
 
     def infer(self, audio_frame: np.ndarray, sample_rate: int) -> Tuple[str, float]:
         image_rgb = self._audio_to_spectrogram_image(audio_frame, sample_rate)

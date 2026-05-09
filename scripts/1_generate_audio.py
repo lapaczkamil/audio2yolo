@@ -15,19 +15,23 @@ INPUT_FOLDER = "1_raw_audio/targets"
 DRONE_BG_FOLDER = "1_raw_audio/backgrounds"
 OUTPUT_FOLDER = "2_processed_audio"
 LABELS_OUTPUT_FOLDER = "3_spectrograms"
+WITH_BACKGROUND = False
 
 SAMPLE_DURATION_SEC = 30.0
 SAMPLE_RATE = 44100
 VERSIONS_PER_CLASS = 2
 
 # Definicja klas: typy i wymaganie ilości eventów dla dźwięków przerywanych
+# "versions" (opcjonalnie): ile losowych wariantów na plik źródłowy — zwiększ przy mało nagrań (np. kolumna).
 AUDIO_CLASSES = {
     "woda": {"type": "ciagly"},
     "pozar": {"type": "ciagly"},
-    "kolumna": {"type": "ciagly"},
+    # Mało plików w 1_raw_audio/targets/kolumna/ → więcej wariantów miksowania/głośności
+    "kolumna": {"type": "ciagly", "versions": 5},
     "krab": {"type": "przerywany", "count": 5},
     "bomba": {"type": "przerywany", "count": 5},
-    "karabin": {"type": "przerywany", "count": 3}
+    # Karabin vs krab: inna liczba strzałów w 30 s pomaga rytmowi na spektrogramie; więcej wariantów = więcej różnych ułożeń
+    "karabin": {"type": "przerywany", "count": 4, "versions": 3},
 }
 
 CLASS_TO_ID = {
@@ -171,10 +175,10 @@ def generate_dataset():
     total_samples = int(SAMPLE_DURATION_SEC * SAMPLE_RATE)
     
     # Bazowe tło drona, które będzie używane we wszystkich wariantach
-    bg_pool = load_background_pool(DRONE_BG_FOLDER)
-    if not bg_pool:
-        print(f"Error: No background audio files found in {DRONE_BG_FOLDER}. Please add .wav files to this folder.")
-        return
+    if WITH_BACKGROUND:
+        bg_pool = load_background_pool(DRONE_BG_FOLDER)
+    else:
+        bg_pool = []
 
     for class_name, config in AUDIO_CLASSES.items():
         source_folder = os.path.join(INPUT_FOLDER, class_name)
@@ -192,8 +196,9 @@ def generate_dataset():
         os.makedirs(labels_target_folder, exist_ok=True)
         print(f"\nProcessing class: {class_name.upper()} (Type: {config['type']}, Sources found: {len(audio_pool)})")
         
+        versions_for_class = int(config.get("versions", VERSIONS_PER_CLASS))
         for base_name, target_audio in audio_pool:
-            for version_idx in range(VERSIONS_PER_CLASS):
+            for version_idx in range(versions_for_class):
                 
                 check_pattern = os.path.join(target_folder, f"{class_name}_{base_name}_v{version_idx}_*.wav")
                 if glob.glob(check_pattern):

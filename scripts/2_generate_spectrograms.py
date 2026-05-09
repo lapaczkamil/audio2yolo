@@ -1,9 +1,8 @@
+import argparse
 import librosa
-import librosa.display
-import matplotlib.pyplot as plt
-import numpy as np
 import os
 import glob
+import sys
 import warnings
 
 warnings.filterwarnings('ignore')
@@ -11,26 +10,14 @@ warnings.filterwarnings('ignore')
 def generate_mel_spectrogram(audio_path, output_path, sr=44100, n_mels=128):
     """
     Konwertuje plik audio na Mel-spektrogram i zapisuje go jako obraz PNG.
+    (Parametry mel jak w mel_features.py — muszą być zgodne z inferencją / ROS.)
     """
-    try:
-        y, sr = librosa.load(audio_path, sr=sr)
-        
-        # Generacja Mel-spektogramu
-        mel_spect = librosa.feature.melspectrogram(y=y, sr=sr, n_fft=2048, hop_length=512, n_mels=n_mels)
-        
-        # Konwersja do skali decybelowej (logarytmicznej) dla lepszej wizualizacji
-        mel_spect_db = librosa.power_to_db(mel_spect, ref=np.max)
-        
-        fig = plt.figure(figsize=(6.4, 6.4), dpi=100)
-        ax = plt.Axes(fig, [0., 0., 1., 1.])
-        ax.set_axis_off()
-        fig.add_axes(ax)
-        
-        librosa.display.specshow(mel_spect_db, sr=sr, hop_length=512, x_axis='time', y_axis='mel', cmap='magma')
+    from mel_features import SR, save_mel_png
 
-        plt.savefig(output_path, pad_inches=0)
-        plt.close(fig)
-        
+    del n_mels  # liczba pasm jest w mel_features.N_MELS
+    try:
+        y, sr = librosa.load(audio_path, sr=sr or SR, mono=True)
+        save_mel_png(y, sr, output_path)
     except Exception as e:
         print(f"Error processing file {audio_path}: {e}")
 
@@ -75,10 +62,34 @@ def process_all_classes(base_input_folder, base_output_folder):
             generate_mel_spectrogram(audio_path, output_path)
             print(f"  [{index}/{file_count}] Saved: {png_name}")
 
-if __name__ == "__main__":
-    INPUT_FOLDER = "2_processed_audio" 
-    OUTPUT_FOLDER = "3_spectrograms"
+def _mel_arg_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(description="Mel-spektrogramy dla YOLO (parametry jak mel_features / env AUDIO2YOLO_*).")
+    p.add_argument("--input", "-i", default="2_processed_audio", help="Folder WAVów wg klas")
+    p.add_argument("--output", "-o", default="3_spectrograms", help="Wyjście PNG")
+    p.add_argument("--mel-n-fft", type=int, default=None, dest="mel_n_fft")
+    p.add_argument("--mel-hop-length", type=int, default=None, dest="mel_hop_length")
+    p.add_argument("--mel-n-mels", type=int, default=None, dest="mel_n_mels")
+    p.add_argument("--mel-fmin", type=float, default=None, dest="mel_fmin")
+    p.add_argument("--mel-fmax", type=float, default=None, dest="mel_fmax")
+    p.add_argument("--mel-top-db", type=float, default=None, dest="mel_top_db")
+    p.add_argument("--mel-preemph", type=float, default=None, dest="mel_preemph", help="0.97 typowo; nadpisuje domyślną preemfazę")
+    p.add_argument("--mel-no-preemph", action="store_true", dest="mel_no_preemph")
+    p.add_argument("--print-mel-config", action="store_true", help="Wypisz aktywną konfigurację mel i zakończ")
+    return p
 
-    print("Starting spectrogram generation pipeline...")
-    process_all_classes(INPUT_FOLDER, OUTPUT_FOLDER)
+
+if __name__ == "__main__":
+    _parser = _mel_arg_parser()
+    args = _parser.parse_args()
+    _scripts = os.path.dirname(os.path.abspath(__file__))
+    if _scripts not in sys.path:
+        sys.path.insert(0, _scripts)
+    import mel_features as _mf
+
+    _mf.apply_mel_argparse_args(args)
+    print("Mel config:", _mf.mel_config_summary(), flush=True)
+    if args.print_mel_config:
+        sys.exit(0)
+
+    process_all_classes(args.input, args.output)
     print("\nProcess completed successfully. Image dataset is ready for labeling.")

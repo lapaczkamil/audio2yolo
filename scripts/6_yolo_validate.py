@@ -1,6 +1,6 @@
 from ultralytics import YOLO
 
-model = YOLO("runs/detect/yolo_experiment/weights/best.pt")
+model = YOLO("runs/detect/yolo_experiment-2/weights/best.pt")
 
 source_to_test = "4_yolo_dataset/images/val"
 

@@ -39,6 +39,13 @@ CLASS_TO_ID = {
     "karabin": 5
 }
 
+
+def glob_wav_files(folder_path):
+    paths = glob.glob(os.path.join(folder_path, "*.wav"))
+    paths += glob.glob(os.path.join(folder_path, "*.WAV"))
+    return sorted(set(paths))
+
+
 def bandpass_filter(audio, sr, low_freq=150, high_freq=10000):
     """
     Filtr pasmowo-przepustowy, przepuszczajacy tylko dzwieki o okreslonych czestotliwosciach.
@@ -56,7 +63,7 @@ def load_background_pool(folder_path):
     Wczytuje wszystkie pliki .wav z folderu z tłami do listy.
     """
     
-    bg_files = glob.glob(os.path.join(folder_path, "*.wav"))
+    bg_files = glob_wav_files(folder_path)
     bg_pool = []
     
     for file_path in bg_files:
@@ -94,7 +101,7 @@ def load_audio_pool(folder_path):
     """
     Laduje wszystkie pliki .wav z podanego folderu i zwraca liste tupli (nazwa_pliku, tablica_audio).
     """
-    wav_files = glob.glob(os.path.join(folder_path, "*.wav"))
+    wav_files = glob_wav_files(folder_path)
     loaded_audio = []
     
     for file_path in wav_files:

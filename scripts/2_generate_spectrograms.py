@@ -14,7 +14,7 @@ def generate_mel_spectrogram(audio_path, output_path, sr=44100, n_mels=128):
     """
     from mel_features import SR, save_mel_png
 
-    del n_mels  # liczba pasm jest w mel_features.N_MELS
+    del n_mels
     try:
         y, sr = librosa.load(audio_path, sr=sr or SR, mono=True)
         save_mel_png(y, sr, output_path)

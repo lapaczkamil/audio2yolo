@@ -55,7 +55,6 @@ def download_clip():
     download_path = os.path.join(DOWNLOAD_FOLDER, folder)
     os.makedirs(download_path, exist_ok=True)
 
-    # 1. Pobieranie metadanych z użyciem pliku cookies.txt
     try:
         with yt_dlp.YoutubeDL({'quiet': True, 'cookiefile': 'cookies.txt'}) as ydl:
             info = ydl.extract_info(url, download=False)
@@ -66,7 +65,6 @@ def download_clip():
         root.update_idletasks()
         return
 
-    # 2. Unikanie nadpisywania plików
     counter = 0
     final_title = safe_title
     
@@ -77,11 +75,10 @@ def download_clip():
     status_var.set(f"Pobieranie i wycinanie: {final_title}...")
     root.update_idletasks()
 
-    # 3. Główna konfiguracja pobierania z użyciem cookies.txt
     download_options = {
         'format': 'bestaudio/best',
         'outtmpl': f'{download_path}/{final_title}.%(ext)s',
-        'cookiefile': 'cookies.txt', # Ciasteczka wczytywane z pliku
+        'cookiefile': 'cookies.txt',
 
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',

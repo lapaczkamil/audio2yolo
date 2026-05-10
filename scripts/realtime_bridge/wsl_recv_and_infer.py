@@ -48,7 +48,7 @@ def main() -> None:
         help="Path to best.pt (relative to cwd or absolute)",
     )
     parser.add_argument("--sample-rate", type=int, default=44100, help="Must match sender")
-    parser.add_argument("--window-sec", type=float, default=1.0, help="Analysis window length")
+    parser.add_argument("--window-sec", type=float, default=3.0, help="Analysis window length")
     parser.add_argument("--yolo-imgsz", type=int, default=640)
     parser.add_argument("--yolo-conf", type=float, default=0.5)
     parser.add_argument(

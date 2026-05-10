@@ -7,31 +7,26 @@ import glob
 import warnings
 from scipy.signal import butter, filtfilt
 
-# Ignoruj warningi z librosy
 warnings.filterwarnings('ignore')
 
-# --- 1. KONFIGURACJA ---
+# --- KONFIGURACJA ---
 INPUT_FOLDER = "1_raw_audio/targets"
 DRONE_BG_FOLDER = "1_raw_audio/backgrounds"
 OUTPUT_FOLDER = "2_processed_audio"
 LABELS_OUTPUT_FOLDER = "3_spectrograms"
-WITH_BACKGROUND = False
+WITH_BACKGROUND = True
 
 SAMPLE_DURATION_SEC = 30.0
 SAMPLE_RATE = 44100
-VERSIONS_PER_CLASS = 2
+VERSIONS_PER_CLASS = 3
 
-# Definicja klas: typy i wymaganie ilości eventów dla dźwięków przerywanych
-# "versions" (opcjonalnie): ile losowych wariantów na plik źródłowy — zwiększ przy mało nagrań (np. kolumna).
 AUDIO_CLASSES = {
     "woda": {"type": "ciagly"},
     "pozar": {"type": "ciagly"},
-    # Mało plików w 1_raw_audio/targets/kolumna/ → więcej wariantów miksowania/głośności
     "kolumna": {"type": "ciagly", "versions": 5},
     "krab": {"type": "przerywany", "count": 5},
     "bomba": {"type": "przerywany", "count": 5},
-    # Karabin vs krab: inna liczba strzałów w 30 s pomaga rytmowi na spektrogramie; więcej wariantów = więcej różnych ułożeń
-    "karabin": {"type": "przerywany", "count": 4, "versions": 3},
+    "karabin": {"type": "przerywany", "count": 5, "versions": 3},
 }
 
 CLASS_TO_ID = {
@@ -120,7 +115,7 @@ def load_audio_pool(folder_path):
             
     return loaded_audio
 
-def slice_into_windows(audio, window_size_sec=3.0, step_size_sec=1.0):
+def slice_into_windows(audio, window_size_sec=3.0, step_size_sec=0.5):
     """
     Dodaje efekt przesuwającego się okna dźwiękowego.
     Okno jest nakładane na audio, aby stworzyć naturalny efekt odbierania dźwięku w czasie rzeczywistym.
@@ -136,7 +131,7 @@ def slice_into_windows(audio, window_size_sec=3.0, step_size_sec=1.0):
         end = min(start + window_size_samples, audio_length)
         sliced_windows.append(audio[start:end]) # Lista z pocietymi dzwiekami
 
-        timestamps.append(start / SAMPLE_RATE) # Lista z czasami poczatkow okien (w sekundach)
+        timestamps.append(start / SAMPLE_RATE) # Lista z czasami poczatkow okien
     return sliced_windows, timestamps
 
 
@@ -174,7 +169,6 @@ def generate_dataset():
     """
     total_samples = int(SAMPLE_DURATION_SEC * SAMPLE_RATE)
     
-    # Bazowe tło drona, które będzie używane we wszystkich wariantach
     if WITH_BACKGROUND:
         bg_pool = load_background_pool(DRONE_BG_FOLDER)
     else:
@@ -185,7 +179,6 @@ def generate_dataset():
         target_folder = os.path.join(OUTPUT_FOLDER, class_name)
         labels_target_folder = os.path.join(LABELS_OUTPUT_FOLDER, class_name)
 
-        # Załaduj wszystkie dostępne próbki dźwiękowe dla tej klasy
         audio_pool = load_audio_pool(source_folder)
         
         if not audio_pool:
@@ -220,7 +213,6 @@ def generate_dataset():
                     continuous_audio = continuous_audio[:total_samples]
                     canvas += (continuous_audio * current_file_volume)
 
-                    # Rejestruje zdarzenia dla dźwięków ciągłych jako jedno zdarzenie trwające przez całą próbkę (format dla YOLO)
                     event_registry.append({
                         "class_id": CLASS_TO_ID[class_name],
                         "start_sample": 0,

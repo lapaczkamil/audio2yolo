@@ -13,7 +13,7 @@ _SCRIPTS = Path(__file__).resolve().parent.parent
 if str(_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS))
 
-from mel_features import audio_to_spectrogram_rgb  # noqa: E402
+from mel_features import audio_to_spectrogram_rgb
 
 try:
     from ultralytics import YOLO

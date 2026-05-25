@@ -1,15 +1,5 @@
 """
-Wspólna konfiguracja mel → obraz dla treningu (2_generate_spectrograms), walidacji i inferencji.
-
-Nadpisywanie bez edycji pliku:
-  • Zmienne środowiskowe (priorytet przy imporcie modułu):
-      AUDIO2YOLO_N_FFT, AUDIO2YOLO_HOP_LENGTH, AUDIO2YOLO_N_MELS,
-      AUDIO2YOLO_FMIN, AUDIO2YOLO_FMAX, AUDIO2YOLO_TOP_DB, AUDIO2YOLO_PREEMPH,
-      AUDIO2YOLO_NO_PREEMPH=1 — wyłącza preemfazę
-  • Programowo: set_mel_overrides(hop_length=512, ...) — po imporcie, przed inferencją
-  • CLI: patrz 2_generate_spectrograms.py oraz wsl_recv_and_infer.py
-
-ROS: audio_detector/node.py czyta te same AUDIO2YOLO_* (trzymaj zgodność nazw).
+Wspólna konfiguracja mel dla treningu, walidacji i inferencji.
 """
 from __future__ import annotations
 
@@ -25,7 +15,6 @@ import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np
 
 SR = 44100
-
 
 def _env_int(key: str, default: int) -> int:
     raw = os.environ.get(key)
@@ -51,7 +40,7 @@ def _env_bool(key: str) -> bool:
     return os.environ.get(key, "").strip().lower() in ("1", "true", "yes", "on")
 
 
-# Domyślne wartości + override z env przy pierwszym imporcie
+# Domyślne wartości
 N_FFT = _env_int("AUDIO2YOLO_N_FFT", 2048)
 HOP_LENGTH = _env_int("AUDIO2YOLO_HOP_LENGTH", 256)
 N_MELS = _env_int("AUDIO2YOLO_N_MELS", 128)
@@ -62,7 +51,6 @@ PREEMPH_COEF = 0.0 if _env_bool("AUDIO2YOLO_NO_PREEMPH") else _env_float("AUDIO2
 
 
 def apply_mel_argparse_args(args: Any) -> None:
-    """Odczytuje atrybuty z argparse: mel_n_fft, mel_hop_length, mel_n_mels, mel_fmin, mel_fmax, mel_top_db, mel_preemph, mel_no_preemph."""
     set_mel_overrides(
         n_fft=getattr(args, "mel_n_fft", None),
         hop_length=getattr(args, "mel_hop_length", None),
@@ -86,7 +74,6 @@ def set_mel_overrides(
     preemph_coef: float | None = None,
     preemph_disable: bool | None = None,
 ) -> None:
-    """Nadpisuje parametry mel globalnie (np. z argparse). None = bez zmiany."""
     global N_FFT, HOP_LENGTH, N_MELS, FMIN, FMAX, TOP_DB, PREEMPH_COEF
     if n_fft is not None:
         N_FFT = int(n_fft)
